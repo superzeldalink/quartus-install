@@ -79,18 +79,43 @@ Quartus on arm64 / aarch64 / Apple Silicon
 
 Quartus has native x86 binaries, and Intel only supplies those for Linux and
 Windows.  So people with Arm-based systems, eg modern Macs, are out of luck?
-Quartus won't run in MacOS where Rosetta would help it, and Rosetta doesn't
-(currently) work in VMs.  Performance in an emulated x86 VM is absolutely
-awful (20x worse build times than an x86 laptop, for a Cyclone V design).
+Quartus will run in MacOS where Rosetta would help it, since Rosetta does
+work in VMs thanks to UTM ultilized Apple Virtualization framework.  Performance 
+in virtualized VM is absolutely awesome.
 
-This script has some hacks to emulate Quartus using QEMU's user-mode x86_64
-emulation.  When an x86 binary is detected, it'll run in the QEMU emulator
-but the rest of the system including kernel etc runs as arm64.  On the
-medium sized Cyclone V design this was only 4x worse than the x86 laptop.
+The `pre-install.sh` script will:
+- Install spice-vdagent for clipboard passthrough.
+- Mount Rosetta binary and shared folder.
+- Setup Rosetta.
+- Add support for amd64 architecture to install amd64 packages.
 
-To install Quartus with patches for an aarch64 Ubuntu VM, install Quartus as
+To run the script, you should provide the macOS version as an argument, ensuring
+that it is greater than or equal to 13 (because the Virtualization framework first
+release on Ventura). Execute the script with sudo privileges:
+
+```
+sudo ./pre-install.sh <macOS_version>
+```
+
+After the installation, please restart the VM for changes to take effect.
+
+To install Quartus with patches for an aarch64 VM, install Quartus as
 above but pass the `--foreign` flag, which will install necessary packages
 and patch your install.
+
+Currently, there are issues with installing Quartus on macOS because it relies on some 
+instructions that aren't supported by Rosetta, which can cause the `quartus-install.py` 
+script to crash after Quartus is installed (before installing devices/QuestaSim). If you 
+encounter this problem, you'll need to extract the device `.qdz` files and manually copy 
+them to the Quartus folder. And you have to install QuestaSim separately by running the 
+`.run` file with the `--mode text` argument. 
+
+Following that, execute the `foreign-pre.sh` script to install the required dependency 
+packages. Afterward, run the `foreign-post.sh $QUARTUS_ROOTDIR` script to apply patches 
+to the `qenv` within Quartus.
+
+It's possible that this problem will be resolved in future macOS updates when Apple 
+includes the necessary instructions.
 
 Caveats:
 
@@ -98,16 +123,16 @@ Caveats:
   Assume it's already broken and hope for positive surprises.
 - Don't expect build performance to be amazing, but at least you can run
   Quartus (maybe).
-- This has only been tested with Quartus Lite 20.1.1, although in
-  theory it should work for other versions, it may need some tweaking
-  (especially Quartus Pro).  Only the main Quartus and Platform Designer
-  build flows have been tested, not all the many other pieces.
-- This is only tested on Ubuntu 20.04 and 22.04.  It will probably work with
+- This has been tested with Quartus Lite 20.1.1, Quartus Standard 22.1 (cracked), 
+  Quartus Pro 23.1, although in theory it should work for other versions, it may
+  need some tweaking (especially Quartus Pro).  Only the main Quartus,
+  Platform Designer, and Eclipse have been tested, not all the many other pieces.
+- This is only tested on Debian 12 (aarch64).  It will probably work with
   other Ubuntu or Debian versions, but they haven't been tested.  Other
   distros will need to install different packages.
-- Some Java parts (eg Platform Designer) will spin forever if more than one
-  core is available to the VM.  It is suspected this is due to a memory
-  ordering difference between x86 (TSO) and Apple Silicon (weak ordering). 
+- Some Java parts (eg Platform Designer), Fitting process will spin forever
+  if more than one core is available to the VM.  It is suspected this is due
+  to a memory ordering difference between x86 (TSO) and Apple Silicon (weak ordering). 
   While M1 can switch into a TSO mode (as it does when Rosetta is running),
   for Quartus Lite it's simpler to limit the VM to one core as it doesn't
   use multicore for builds anyway.  Another option is to edit the wrapper
