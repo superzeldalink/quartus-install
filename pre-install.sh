@@ -44,5 +44,8 @@ echo "share /media/share virtiofs rw,nofail 0 0" >> /etc/fstab
 dpkg --add-architecture amd64
 apt update
 
+# Install libc6:amd64
+apt install -y libc6:amd64
+
 # Display completion message
 echo "Script completed. Please restart the VM for changes to take effect."
