@@ -594,12 +594,18 @@ def foreign_pre(target):
     os.system(scriptdir+"/foreign/foreign-pre.sh "+target)
 
 
-def foreign_post(target):
+def foreign_post(target, parts):
     mach = platform.machine()
     if mach == 'x86_64':
         return
     scriptdir = os.path.dirname(os.path.abspath(__file__))
-    os.system(scriptdir+"/foreign/foreign-post.sh "+target+"/quartus")
+    os.system(scriptdir+"/foreign/foreign-post.sh "+target)
+
+    if 'modelsim' in parts or 'questa' in parts:
+        scriptdir = os.path.dirname(os.path.abspath(__file__))
+        os.system(scriptdir+"/foreign/foreign-post-questa.sh "+target)
+
+    print("Please close and re-open your terminal, or type `source ~/.bashrc`.")
 
 
 
@@ -693,7 +699,7 @@ if args.prune and not args.install_only:
 
 if args.foreign:
     print("Running post-installation script to configure for cross-arch qemu-user")
-    foreign_post(target)
+    foreign_post(target, parts)
 
 
 
